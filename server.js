@@ -3,11 +3,14 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Digio API Configuration
+const DIGIO_API_URL = 'https://api.digio.in/v2/client/template/multi_templates/create_sign_request';
 
 // API Route
 app.post('/api/submit-client-form', async (req, res) => {
@@ -18,10 +21,11 @@ app.post('/api/submit-client-form', async (req, res) => {
     if (!DIGIO_API_KEY) {
       return res.status(500).json({
         success: false,
-        error: { message: 'Server configuration error' }
+        error: { message: 'Server configuration error - API key missing' }
       });
     }
 
+    // Prepare payload for Digio API
     const postData = {
       signers: [
         {
@@ -51,21 +55,24 @@ app.post('/api/submit-client-form', async (req, res) => {
       ]
     };
 
-    const response = await axios.post(
-      'https://api.digio.in/v2/client/template/multi_templates/create_sign_request', 
-      postData, 
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': DIGIO_API_KEY,
-          'Content-Type': 'application/json'
-        }
+    // Make request to Digio API
+    const response = await axios.post(DIGIO_API_URL, postData, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': DIGIO_API_KEY,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
-    res.json({ success: true, data: response.data });
+    // Send success response
+    res.json({
+      success: true,
+      data: response.data
+    });
   } catch (error) {
     console.error('API Error:', error.response?.data || error.message);
+    
+    // Send error response
     res.status(error.response?.status || 500).json({
       success: false,
       error: error.response?.data || { message: 'Server error' }
